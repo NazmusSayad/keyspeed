@@ -6,7 +6,6 @@ import {
 } from './components/ui/better-scroll-area'
 import { Button } from './components/ui/button'
 import { OverviewPage } from './features/overview'
-import { SessionHistoryPage } from './features/session-history'
 import { SettingsPage } from './features/settings'
 
 export const appRouter = createBrowserRouter([
@@ -44,10 +43,6 @@ export const appRouter = createBrowserRouter([
       {
         index: true,
         element: <OverviewPage />,
-      },
-      {
-        path: 'sessions',
-        element: <SessionHistoryPage />,
       },
       {
         path: 'settings',
