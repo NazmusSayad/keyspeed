@@ -5,7 +5,9 @@ import {
   BetterScrollAreaProvider,
 } from './components/ui/better-scroll-area'
 import { Button } from './components/ui/button'
-import { HomePage } from './features/home-page'
+import { OverviewPage } from './features/overview'
+import { SessionHistoryPage } from './features/session-history'
+import { SettingsPage } from './features/settings'
 
 export const appRouter = createBrowserRouter([
   {
@@ -41,7 +43,15 @@ export const appRouter = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <HomePage />,
+        element: <OverviewPage />,
+      },
+      {
+        path: 'sessions',
+        element: <SessionHistoryPage />,
+      },
+      {
+        path: 'settings',
+        element: <SettingsPage />,
       },
     ],
   },

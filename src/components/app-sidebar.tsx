@@ -5,9 +5,19 @@ import { Link, useLocation } from 'react-router'
 
 const sidebarItems = [
   {
-    title: 'Home',
+    title: 'Overview',
     icon: TestTubeIcon,
     href: '/',
+  },
+  {
+    title: 'Sessions',
+    icon: TestTubeIcon,
+    href: '/sessions',
+  },
+  {
+    title: 'Settings',
+    icon: TestTubeIcon,
+    href: '/settings',
   },
 ]
 

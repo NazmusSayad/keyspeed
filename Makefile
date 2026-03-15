@@ -36,7 +36,7 @@ rebuild:
 	pnpm tauri build
 
 build-win-win:
-	pnpm tauri build --target x86_64-pc-windows-msvc --bundles msi,nsis
+	pnpm tauri build --target x86_64-pc-windows-msvc --bundles nsis
 
 build-linux-win:
 	pnpm tauri build --target x86_64-unknown-linux-gnu --bundles appimage,deb,rpm
