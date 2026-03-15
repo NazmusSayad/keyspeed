@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "identifier": "com.keyspeed.desktop",
   "build": {
-    "beforeDevCommand": "cargo build --manifest-path src-tauri/Cargo.toml --target-dir src-tauri/runner-target --bin typing-runner --features runner-binary && pnpm dev",
+    "beforeDevCommand": "cargo build --manifest-path src-tauri/Cargo.toml --bin typing-runner --features runner-binary && pnpm dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "pnpm build && cargo build --manifest-path src-tauri/Cargo.toml --target-dir src-tauri/runner-target --release --bin typing-runner --features runner-binary && node scripts/prepare-sidecar.mjs",
+    "beforeBuildCommand": "pnpm build && cargo build --manifest-path src-tauri/Cargo.toml --release --bin typing-runner --features runner-binary && node scripts/prepare-sidecar.mjs",
     "frontendDist": "../dist"
   },
   "app": {

@@ -1,3 +1,7 @@
+## Project
+
+- We are just building this app. DO NOT CARE ABOUT COMPATIBILITY OR LEGACY.
+
 ## Commands
 
 - Check the `Makefile` for all commands and use `make <command>` to run commands when needed.

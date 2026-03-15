@@ -11,7 +11,17 @@ install:
 	pnpm install
 	cd $(TAURI_DIR) && cargo fetch
 
+dev-preflight:
+ifeq ($(OS),Windows_NT)
+	powershell -NoProfile -Command "Get-Process | Where-Object ProcessName -In @('typing-ui','typing-runner') | Stop-Process -Force -ErrorAction SilentlyContinue; if (Test-Path '$(TAURI_DIR)\\runner-target') { Remove-Item '$(TAURI_DIR)\\runner-target' -Recurse -Force }"
+else
+	pkill -f typing-ui || true
+	pkill -f typing-runner || true
+	rm -rf $(TAURI_DIR)/runner-target
+endif
+
 dev:
+	$(MAKE) dev-preflight
 	pnpm tauri dev
 
 build:
@@ -29,10 +39,12 @@ cargo-test:
 clean:
 	rm -rf dist
 	rm -rf $(TAURI_DIR)/target
+	rm -rf $(TAURI_DIR)/runner-target
 
 rebuild:
 	rm -rf dist
 	rm -rf $(TAURI_DIR)/target
+	rm -rf $(TAURI_DIR)/runner-target
 	pnpm tauri build
 
 build-win-win:
