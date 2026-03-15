@@ -14,7 +14,6 @@
       {
         "label": "main",
         "title": "Keyspeed",
-        "dataDirectory": "keyspeed-webview",
         "minWidth": 620,
         "minHeight": 540
       }
