@@ -25,7 +25,6 @@ import {
   formatCompactNumber,
   formatDurationMinutes,
   formatMilliseconds,
-  formatRelativeTime,
   formatSeconds,
   formatTimestampLabel,
   overviewStats,
@@ -78,17 +77,18 @@ export function OverviewMetricsSection({
             <p
               className={cn(
                 'font-medium',
-                runner.isRunning
+                runner.isRunning && runner.isResponsive
                   ? 'text-primary'
-                  : runner.lastError
-                    ? 'text-destructive'
+                  : runner.isRunning
+                    ? 'text-amber-600'
                     : 'text-muted-foreground'
               )}
             >
               {renderRunnerStatus(runner)}
             </p>
             <p className="text-muted-foreground">
-              Last heartbeat {formatRelativeTime(runner.lastHeartbeatAt)}
+              Runner health{' '}
+              {runner.isResponsive ? 'responding to ping' : 'waiting for ping'}
             </p>
             <p className="text-muted-foreground">
               Last sync{' '}

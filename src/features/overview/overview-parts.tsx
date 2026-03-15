@@ -1,4 +1,4 @@
-import { format, formatDistanceToNowStrict } from 'date-fns'
+import { format } from 'date-fns'
 import type { DailySummary, RunnerStatus } from '../app-state/types'
 
 export const overviewStats = [
@@ -60,21 +60,13 @@ export function formatTimestampLabel(value: string) {
   return format(new Date(value), 'HH:mm')
 }
 
-export function formatRelativeTime(value: string | null) {
-  if (!value) {
-    return 'Waiting for activity'
-  }
-
-  return `${formatDistanceToNowStrict(new Date(value), { addSuffix: true })}`
-}
-
 export function renderRunnerStatus(status: RunnerStatus) {
-  if (status.isRunning) {
+  if (status.isRunning && status.isResponsive) {
     return 'Runner active'
   }
 
-  if (status.lastError) {
-    return 'Runner needs attention'
+  if (status.isRunning) {
+    return 'Runner starting'
   }
 
   return 'Runner stopped'

@@ -53,12 +53,8 @@ export interface ProductivityMetrics {
 
 export interface RunnerStatus {
   isRunning: boolean
+  isResponsive: boolean
   autostartConfigured: boolean
-  staleAfterSeconds: number
-  lastHeartbeatAt: string | null
-  lastFlushAt: string | null
-  lastStartedAt: string | null
-  lastError: string | null
 }
 
 export interface PermissionHint {

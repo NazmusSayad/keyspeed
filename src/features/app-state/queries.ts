@@ -41,12 +41,8 @@ export async function loadAppState() {
       },
       runner: {
         isRunning: false,
+        isResponsive: false,
         autostartConfigured: false,
-        staleAfterSeconds: 20,
-        lastHeartbeatAt: null,
-        lastFlushAt: null,
-        lastStartedAt: null,
-        lastError: null,
       },
       databasePath: 'Not available outside Tauri',
       runnerPath: null,
@@ -75,12 +71,8 @@ export async function startRunner() {
   if (!isTauri) {
     return {
       isRunning: false,
+      isResponsive: false,
       autostartConfigured: false,
-      staleAfterSeconds: 20,
-      lastHeartbeatAt: null,
-      lastFlushAt: null,
-      lastStartedAt: null,
-      lastError: null,
     } satisfies RunnerStatus
   }
 

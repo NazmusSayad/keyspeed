@@ -176,12 +176,14 @@ export function SettingsPage() {
           </span>{' '}
           {runner.autostartConfigured ? 'Yes' : 'No'}
         </p>
-        {runner.lastError ? (
-          <p>
-            <span className="text-foreground font-medium">Runner error:</span>{' '}
-            {runner.lastError}
-          </p>
-        ) : null}
+        <p>
+          <span className="text-foreground font-medium">Runner status:</span>{' '}
+          {runner.isRunning
+            ? runner.isResponsive
+              ? 'Running and responsive'
+              : 'Running but not responding yet'
+            : 'Stopped'}
+        </p>
       </div>
     </section>
   )
