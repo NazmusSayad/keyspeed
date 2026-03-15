@@ -13,8 +13,8 @@
     "windows": [
       {
         "title": "Keyspeed",
-        "width": 800,
-        "height": 600
+        "minWidth": 620,
+        "minHeight": 540
       }
     ],
     "security": {
