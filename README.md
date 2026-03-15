@@ -1,6 +1,6 @@
 # Keyspeed
 
-Keyspeed is a privacy-first desktop typing analytics app made of two executables that share a single SQLite database:
+Keyspeed is a privacy-first desktop typing analytics app made of two executables that share a single SQLite event database and one settings file:
 
 - `typing-runner`: lightweight global keyboard metadata collector written in Rust
 - `typing-ui`: Tauri dashboard for visualizing sessions, trends, and productivity signals
@@ -15,16 +15,14 @@ The runner never stores actual typed text, key values, passwords, or clipboard d
 - `src-tauri/src/lib.rs` exposes Tauri commands to the React frontend
 - `src/features/home-page/home-page.tsx` renders the analytics dashboard and settings UI
 
-## Database
+## Storage
 
-The SQLite schema lives in `src-tauri/schema.sql` and includes:
+Keyspeed persists data in exactly two app-managed files under the user config directory:
 
-- `events` for raw metadata-only key events
-- `sessions` for idle-split typing sessions
-- `minute_stats` for compact chart-ready aggregates
-- `daily_stats` for long-term summaries
-- `settings` for shared app configuration
-- `runner_state` for heartbeats, flush status, and error reporting
+- `keyspeed.sqlite` stores raw metadata-only key events in the `events` table
+- `settings.json` stores user settings such as idle timeout, raw retention, and runner autostart
+
+SQLite may also create `keyspeed.sqlite-wal` and `keyspeed.sqlite-shm` while the database is open.
 
 ## Development
 

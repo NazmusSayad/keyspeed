@@ -1,18 +1,15 @@
-use std::{env, fs::OpenOptions, path::PathBuf, process::Stdio};
+use std::{
+  env,
+  path::{Path, PathBuf},
+  process::Stdio,
+};
 
 use anyhow::{Context, Result};
-use fs2::FileExt;
+use sysinfo::{ProcessesToUpdate, Signal, System};
 use tauri::{AppHandle, Manager};
-use tokio::{
-  io::{AsyncReadExt, AsyncWriteExt},
-  net::TcpStream,
-  time::{sleep, timeout, Duration},
-};
+use tokio::time::{sleep, Duration};
 
-use crate::{
-  models::{PermissionHint, RunnerStatus},
-  storage,
-};
+use crate::models::{PermissionHint, RunnerStatus};
 
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 use std::fs;
@@ -73,8 +70,7 @@ pub async fn start_runner(app: &AppHandle) -> Result<()> {
 
 pub async fn wait_for_runner(app: &AppHandle) -> Result<()> {
   for _ in 0..20 {
-    let status = load_runner_status(app).await?;
-    if status.is_responsive {
+    if is_runner_process_running(app)? {
       return Ok(());
     }
     sleep(Duration::from_millis(200)).await;
@@ -85,18 +81,26 @@ pub async fn wait_for_runner(app: &AppHandle) -> Result<()> {
 
 pub async fn load_runner_status(app: &AppHandle) -> Result<RunnerStatus> {
   let autostart_configured = is_runner_autostart_configured(app).unwrap_or(false);
-  let is_running = is_runner_lock_active()?;
-  let is_responsive = if is_running {
-    ping_runner().await
-  } else {
-    false
-  };
+  let is_running = is_runner_process_running(app)?;
 
   Ok(RunnerStatus {
     is_running,
-    is_responsive,
     autostart_configured,
   })
+}
+
+pub async fn stop_runner(app: &AppHandle) -> Result<RunnerStatus> {
+  let runner_path = resolve_runner_path(app).context("failed to resolve typing-runner")?;
+  stop_runner_processes(&runner_path)?;
+  wait_for_runner_exit(app).await?;
+  load_runner_status(app).await
+}
+
+pub async fn restart_runner(app: &AppHandle) -> Result<RunnerStatus> {
+  let _ = stop_runner(app).await?;
+  start_runner(app).await?;
+  wait_for_runner(app).await?;
+  load_runner_status(app).await
 }
 
 pub fn resolve_runner_path(app: &AppHandle) -> Option<PathBuf> {
@@ -106,6 +110,23 @@ pub fn resolve_runner_path(app: &AppHandle) -> Option<PathBuf> {
     "typing-runner"
   };
   let mut candidates = Vec::new();
+
+  if let Ok(current_dir) = env::current_dir() {
+    candidates.push(
+      current_dir
+        .join("src-tauri")
+        .join("runner-target")
+        .join("debug")
+        .join(binary_name),
+    );
+    candidates.push(
+      current_dir
+        .join("src-tauri")
+        .join("runner-target")
+        .join("release")
+        .join(binary_name),
+    );
+  }
 
   if let Ok(current_exe) = env::current_exe() {
     if let Some(directory) = current_exe.parent() {
@@ -123,20 +144,6 @@ pub fn resolve_runner_path(app: &AppHandle) -> Option<PathBuf> {
   }
 
   if let Ok(current_dir) = env::current_dir() {
-    candidates.push(
-      current_dir
-        .join("src-tauri")
-        .join("runner-target")
-        .join("debug")
-        .join(binary_name),
-    );
-    candidates.push(
-      current_dir
-        .join("src-tauri")
-        .join("runner-target")
-        .join("release")
-        .join(binary_name),
-    );
     candidates.push(
       current_dir
         .join("src-tauri")
@@ -222,8 +229,9 @@ pub fn sync_runner_autostart(app: &AppHandle, enabled: bool) -> Result<bool> {
 }
 
 pub fn is_runner_autostart_configured(app: &AppHandle) -> Result<bool> {
-  let runner_path =
-    resolve_runner_path(app).context("failed to resolve runner for autostart status")?;
+  let Some(runner_path) = resolve_runner_path(app) else {
+    return Ok(false);
+  };
 
   #[cfg(target_os = "windows")]
   {
@@ -258,46 +266,84 @@ pub fn is_runner_autostart_configured(app: &AppHandle) -> Result<bool> {
   Ok(false)
 }
 
-fn is_runner_lock_active() -> Result<bool> {
-  let path = storage::runner_lock_path()?;
-  let file = OpenOptions::new()
-    .read(true)
-    .write(true)
-    .create(true)
-    .truncate(false)
-    .open(path)?;
-
-  match file.try_lock_exclusive() {
-    Ok(()) => {
-      file.unlock()?;
-      Ok(false)
+async fn wait_for_runner_exit(app: &AppHandle) -> Result<()> {
+  for _ in 0..20 {
+    if !is_runner_process_running(app)? {
+      return Ok(());
     }
-    Err(_) => Ok(true),
+    sleep(Duration::from_millis(200)).await;
   }
+
+  Err(anyhow::anyhow!("runner did not stop in time"))
 }
 
-async fn ping_runner() -> bool {
-  let Ok(port_path) = storage::runner_port_path() else {
-    return false;
-  };
-  let Ok(port) = std::fs::read_to_string(port_path) else {
-    return false;
-  };
-  let Ok(port) = port.trim().parse::<u16>() else {
-    return false;
-  };
+fn is_runner_process_running(app: &AppHandle) -> Result<bool> {
+  Ok(!runner_process_ids(app)?.is_empty())
+}
 
-  timeout(Duration::from_millis(400), async move {
-    let mut stream = TcpStream::connect(("127.0.0.1", port)).await.ok()?;
-    stream.write_all(b"ping").await.ok()?;
-    let mut buffer = [0_u8; 4];
-    stream.read_exact(&mut buffer).await.ok()?;
-    Some(buffer == *b"pong")
-  })
-  .await
-  .ok()
-  .flatten()
-  .unwrap_or(false)
+fn runner_process_ids(app: &AppHandle) -> Result<Vec<sysinfo::Pid>> {
+  let runner_path = resolve_runner_path(app).context("failed to resolve typing-runner")?;
+  let runner_path = normalize_path(&runner_path)?;
+  let current_pid = std::process::id();
+  let mut system = System::new_all();
+  system.refresh_processes(ProcessesToUpdate::All, true);
+
+  Ok(
+    system
+      .processes()
+      .iter()
+      .filter_map(|(pid, process)| {
+        let exe = process.exe()?;
+        let exe = normalize_path(exe).ok()?;
+        if !paths_match(&runner_path, &exe) {
+          return None;
+        }
+        if pid.as_u32() == current_pid {
+          return None;
+        }
+        Some(*pid)
+      })
+      .collect(),
+  )
+}
+
+fn stop_runner_processes(runner_path: &Path) -> Result<()> {
+  let runner_path = normalize_path(runner_path)?;
+  let current_pid = std::process::id();
+  let mut system = System::new_all();
+  system.refresh_processes(ProcessesToUpdate::All, true);
+
+  for (pid, process) in system.processes() {
+    let Some(exe) = process.exe() else {
+      continue;
+    };
+    let Ok(exe) = normalize_path(exe) else {
+      continue;
+    };
+    if !paths_match(&runner_path, &exe) || pid.as_u32() == current_pid {
+      continue;
+    }
+
+    if !process.kill_with(Signal::Term).unwrap_or(false) {
+      let _ = process.kill();
+    }
+  }
+
+  Ok(())
+}
+
+fn normalize_path(path: &Path) -> Result<PathBuf> {
+  std::fs::canonicalize(path).or_else(|_| Ok(path.to_path_buf()))
+}
+
+fn paths_match(left: &Path, right: &Path) -> bool {
+  if cfg!(target_os = "windows") {
+    left
+      .to_string_lossy()
+      .eq_ignore_ascii_case(&right.to_string_lossy())
+  } else {
+    left == right
+  }
 }
 
 #[cfg(target_os = "macos")]

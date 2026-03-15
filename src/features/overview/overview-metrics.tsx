@@ -77,18 +77,10 @@ export function OverviewMetricsSection({
             <p
               className={cn(
                 'font-medium',
-                runner.isRunning && runner.isResponsive
-                  ? 'text-primary'
-                  : runner.isRunning
-                    ? 'text-amber-600'
-                    : 'text-muted-foreground'
+                runner.isRunning ? 'text-primary' : 'text-muted-foreground'
               )}
             >
               {renderRunnerStatus(runner)}
-            </p>
-            <p className="text-muted-foreground">
-              Runner health{' '}
-              {runner.isResponsive ? 'responding to ping' : 'waiting for ping'}
             </p>
             <p className="text-muted-foreground">
               Last sync{' '}
@@ -100,9 +92,11 @@ export function OverviewMetricsSection({
             </p>
             <p className="text-muted-foreground">Database: {databasePath}</p>
             <div className="flex flex-wrap gap-3 pt-2">
-              <Button onClick={onStartRunner} disabled={isStartingRunner}>
-                {isStartingRunner ? 'Starting runner…' : 'Start runner'}
-              </Button>
+              {!runner.isRunning ? (
+                <Button onClick={onStartRunner} disabled={isStartingRunner}>
+                  {isStartingRunner ? 'Starting runner…' : 'Start runner'}
+                </Button>
+              ) : null}
               <Button
                 variant="outline"
                 onClick={onRefresh}

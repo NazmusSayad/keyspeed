@@ -5,7 +5,7 @@ mod settings;
 mod startup;
 mod storage;
 
-use models::{AppSettings, AppStatePayload, RunnerStatus};
+use models::{AppSettings, DashboardStatePayload, RunnerStatus, RuntimeStatePayload};
 use tauri::{AppHandle, Manager, State};
 
 struct AppState {
@@ -13,21 +13,22 @@ struct AppState {
 }
 
 #[tauri::command]
-async fn load_app_state(
-  app: AppHandle,
-  state: State<'_, AppState>,
-) -> Result<AppStatePayload, String> {
+async fn load_overview_state(state: State<'_, AppState>) -> Result<DashboardStatePayload, String> {
   let settings = settings::load().map_err(|error| error.to_string())?;
   let dashboard = db::load_dashboard(&state.pool, &settings)
     .await
     .map_err(|error| error.to_string())?;
+
+  Ok(DashboardStatePayload { dashboard })
+}
+
+#[tauri::command]
+async fn load_runtime_state(app: AppHandle) -> Result<RuntimeStatePayload, String> {
   let runner = startup::load_runner_status(&app)
     .await
     .map_err(|error| error.to_string())?;
 
-  Ok(AppStatePayload {
-    dashboard,
-    settings,
+  Ok(RuntimeStatePayload {
     runner,
     database_path: storage::database_path()
       .map(|path| path.display().to_string())
@@ -35,6 +36,11 @@ async fn load_app_state(
     runner_path: startup::resolve_runner_path(&app).map(|path| path.display().to_string()),
     permission_hint: startup::permission_hint(),
   })
+}
+
+#[tauri::command]
+async fn load_settings_state() -> Result<AppSettings, String> {
+  settings::load().map_err(|error| error.to_string())
 }
 
 #[tauri::command]
@@ -76,6 +82,20 @@ async fn start_runner(app: AppHandle) -> Result<RunnerStatus, String> {
     .map_err(|error| error.to_string())
 }
 
+#[tauri::command]
+async fn stop_runner(app: AppHandle) -> Result<RunnerStatus, String> {
+  startup::stop_runner(&app)
+    .await
+    .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+async fn restart_runner(app: AppHandle) -> Result<RunnerStatus, String> {
+  startup::restart_runner(&app)
+    .await
+    .map_err(|error| error.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   let pool = tauri::async_runtime::block_on(db::connect_pool())
@@ -105,9 +125,13 @@ pub fn run() {
       Ok(())
     })
     .invoke_handler(tauri::generate_handler![
-      load_app_state,
+      load_overview_state,
+      load_runtime_state,
+      load_settings_state,
       save_settings,
-      start_runner
+      start_runner,
+      stop_runner,
+      restart_runner
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

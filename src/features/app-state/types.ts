@@ -53,7 +53,6 @@ export interface ProductivityMetrics {
 
 export interface RunnerStatus {
   isRunning: boolean
-  isResponsive: boolean
   autostartConfigured: boolean
 }
 
@@ -74,9 +73,11 @@ export interface DashboardPayload {
   lastUpdatedAt: string | null
 }
 
-export interface AppStatePayload {
+export interface DashboardStatePayload {
   dashboard: DashboardPayload
-  settings: AppSettings
+}
+
+export interface RuntimeStatePayload {
   runner: RunnerStatus
   databasePath: string
   runnerPath: string | null

@@ -61,15 +61,11 @@ export function formatTimestampLabel(value: string) {
 }
 
 export function renderRunnerStatus(status: RunnerStatus) {
-  if (status.isRunning && status.isResponsive) {
-    return 'Runner active'
-  }
-
   if (status.isRunning) {
-    return 'Runner starting'
+    return 'Running'
   }
 
-  return 'Runner stopped'
+  return 'Stopped'
 }
 
 export function OverviewValue({

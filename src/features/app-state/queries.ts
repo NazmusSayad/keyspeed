@@ -1,12 +1,17 @@
 import { invoke } from '@tauri-apps/api/core'
-import type { AppSettings, AppStatePayload, RunnerStatus } from './types'
+import type {
+  AppSettings,
+  DashboardStatePayload,
+  RunnerStatus,
+  RuntimeStatePayload,
+} from './types'
 
 const isTauri =
   typeof window !== 'undefined' &&
   typeof window === 'object' &&
   '__TAURI_INTERNALS__' in window
 
-export async function loadAppState() {
+export async function loadDashboardState() {
   if (!isTauri) {
     return {
       dashboard: {
@@ -33,15 +38,17 @@ export async function loadAppState() {
         },
         lastUpdatedAt: null,
       },
-      settings: {
-        idleTimeoutSeconds: 5,
-        autostartRunner: true,
-        retainRawDays: 30,
-        captureActiveApp: false,
-      },
+    } satisfies DashboardStatePayload
+  }
+
+  return invoke<DashboardStatePayload>('load_overview_state')
+}
+
+export async function loadRuntimeState() {
+  if (!isTauri) {
+    return {
       runner: {
         isRunning: false,
-        isResponsive: false,
         autostartConfigured: false,
       },
       databasePath: 'Not available outside Tauri',
@@ -53,10 +60,23 @@ export async function loadAppState() {
         actionLabel: null,
         actionUrl: null,
       },
-    } satisfies AppStatePayload
+    } satisfies RuntimeStatePayload
   }
 
-  return invoke<AppStatePayload>('load_app_state')
+  return invoke<RuntimeStatePayload>('load_runtime_state')
+}
+
+export async function loadSettingsState() {
+  if (!isTauri) {
+    return {
+      idleTimeoutSeconds: 5,
+      autostartRunner: true,
+      retainRawDays: 30,
+      captureActiveApp: false,
+    } satisfies AppSettings
+  }
+
+  return invoke<AppSettings>('load_settings_state')
 }
 
 export async function saveAppSettings(settings: AppSettings) {
@@ -71,10 +91,31 @@ export async function startRunner() {
   if (!isTauri) {
     return {
       isRunning: false,
-      isResponsive: false,
       autostartConfigured: false,
     } satisfies RunnerStatus
   }
 
   return invoke<RunnerStatus>('start_runner')
+}
+
+export async function stopRunner() {
+  if (!isTauri) {
+    return {
+      isRunning: false,
+      autostartConfigured: false,
+    } satisfies RunnerStatus
+  }
+
+  return invoke<RunnerStatus>('stop_runner')
+}
+
+export async function restartRunner() {
+  if (!isTauri) {
+    return {
+      isRunning: false,
+      autostartConfigured: false,
+    } satisfies RunnerStatus
+  }
+
+  return invoke<RunnerStatus>('restart_runner')
 }

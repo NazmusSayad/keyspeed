@@ -22,9 +22,13 @@ impl Default for AppSettings {
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct AppStatePayload {
+pub struct DashboardStatePayload {
   pub dashboard: DashboardPayload,
-  pub settings: AppSettings,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeStatePayload {
   pub runner: RunnerStatus,
   pub database_path: String,
   pub runner_path: Option<String>,
@@ -102,7 +106,6 @@ pub struct ProductivityMetrics {
 #[serde(rename_all = "camelCase")]
 pub struct RunnerStatus {
   pub is_running: bool,
-  pub is_responsive: bool,
   pub autostart_configured: bool,
 }
 

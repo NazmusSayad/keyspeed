@@ -38,7 +38,6 @@ pub struct PendingEvent {
   pub event_type: EventKind,
   pub interval_ms: Option<i64>,
   pub hold_duration_ms: Option<i64>,
-  pub active_app_name: Option<String>,
 }
 
 pub async fn connect_pool() -> Result<SqlitePool> {
@@ -150,7 +149,9 @@ pub async fn load_dashboard(pool: &SqlitePool, settings: &AppSettings) -> Result
       timestamp: row.try_get("minute_timestamp").unwrap_or_default(),
       key_count: row.try_get("key_count").unwrap_or_default(),
       active_seconds: row.try_get("active_seconds").unwrap_or_default(),
-      average_interval_ms: row.try_get("avg_interval_ms").ok(),
+      average_interval_ms: row
+        .try_get::<Option<f64>, _>("avg_interval_ms")
+        .unwrap_or(None),
     })
     .collect();
 
@@ -291,13 +292,12 @@ pub async fn ingest_batch(pool: &SqlitePool, events: &[PendingEvent]) -> Result<
 
   for event in events {
     sqlx::query(
-            "INSERT INTO events (timestamp, event_type, interval_ms, hold_duration_ms, active_app_name) VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO events (timestamp, event_type, interval_ms, hold_duration_ms) VALUES (?, ?, ?, ?)",
         )
         .bind(format_timestamp(event.timestamp))
         .bind(event.event_type.as_str())
         .bind(event.interval_ms)
         .bind(event.hold_duration_ms)
-        .bind(&event.active_app_name)
         .execute(&mut *tx)
         .await?;
   }
